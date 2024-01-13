@@ -149,6 +149,21 @@ impl mutstr {
     /// Get the allocated data as `&mut [u8]`
     ///
     /// **Notice:** _Like `as_bytes()` but mutable_
+    ///
+    /// ### Example
+    /// ```
+    /// use mutstr::mutstr;
+    /// let mut result = mutstr::from("Hello");
+    ///
+    /// let mut bytes = result.as_bytes_mut();
+    /// bytes[0] = 0x6f; // o
+    /// bytes[1] = 0x6c; // l
+    /// bytes[2] = 0x6c; // l
+    /// bytes[3] = 0x65; // e
+    /// bytes[4] = 0x48; // H
+    ///
+    /// assert_eq!(result.as_bytes(), b"olleH");
+    /// ```
     #[inline(always)]
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         unsafe { std::slice::from_raw_parts_mut(self.ptr_mut(), self.size()) }
