@@ -7,6 +7,7 @@ license = "MIT OR Apache-2.0"
 authors = ["Nick-Ilhan Atamgüc <nickatamguec@outlook.com>"]
 keywords = ["str", "string", "mut", "mutable"]
 description = "A mutable alternative for `Box<str>`"
+exclude = ["benches/"]
 
 [dependencies]
 serde = { version = "1.0", optional = true }

@@ -6,7 +6,7 @@
 //! uses 16 bytes.
 //! [String](https://github.com/rust-lang/rust/blob/master/library/alloc/src/string.rs)
 //! uses 24 bytes.
-//! 
+//!
 //! ### Example
 //! ```
 //! use std::collections::HashMap;
@@ -38,17 +38,17 @@ impl MutStrPtr {
         self.1
     }
 
+    #[inline(always)]
+    fn layout(&self) -> alloc::Layout {
+        unsafe { alloc::Layout::from_size_align_unchecked(self.size(), 1) }
+    }
+
     fn realloc(&mut self, new_value_size: usize) {
         unsafe {
             let old_layout = self.layout();
             self.0 = alloc::realloc(self.raw(), old_layout, new_value_size);
         };
         self.1 = new_value_size;
-    }
-
-    #[inline(always)]
-    fn layout(&self) -> alloc::Layout {
-        unsafe { alloc::Layout::from_size_align_unchecked(self.size(), 1) }
     }
 }
 
@@ -131,7 +131,7 @@ impl mutstr {
         self._ptr.layout()
     }
 
-    /// Get the allocated data as `&[u8]`.
+    /// Get the allocated data as `&[u8]`
     ///
     /// **Notice:** _Can be used to compare with `&str` or `String`_
     /// ### Example
@@ -149,6 +149,21 @@ impl mutstr {
     /// Get the allocated data as `&mut [u8]`
     ///
     /// **Notice:** _Like `as_bytes()` but mutable_
+    ///
+    /// ### Example
+    /// ```
+    /// use mutstr::mutstr;
+    /// let mut result = mutstr::from("Hello");
+    ///
+    /// let mut bytes = result.as_bytes_mut();
+    /// bytes[0] = 0x6f; // o
+    /// bytes[1] = 0x6c; // l
+    /// bytes[2] = 0x6c; // l
+    /// bytes[3] = 0x65; // e
+    /// bytes[4] = 0x48; // H
+    ///
+    /// assert_eq!(result.as_bytes(), b"olleH");
+    /// ```
     #[inline(always)]
     pub fn as_bytes_mut(&mut self) -> &mut [u8] {
         unsafe { std::slice::from_raw_parts_mut(self.ptr_mut(), self.size()) }
@@ -210,12 +225,11 @@ impl mutstr {
 
         let value_size = std::mem::size_of_val(value);
         let old_size = self.size();
-        let new_size = old_size + value_size;
-        self._ptr.realloc(new_size);
+        self._ptr.realloc(old_size + value_size);
 
         unsafe {
-            let p = self.ptr_mut().add(old_size);
-            std::ptr::copy(value.as_ptr(), p, value_size);
+            let dst_ptr = self.ptr_mut().add(old_size);
+            std::ptr::copy(value.as_ptr(), dst_ptr, value_size);
         };
     }
 
@@ -234,6 +248,12 @@ impl mutstr {
     }
 }
 
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// assert_eq!(result.as_str(), "abc123");
+/// ```
 impl From<&str> for mutstr {
     fn from(value: &str) -> Self {
         let value_size = std::mem::size_of_val(value);
@@ -249,6 +269,12 @@ impl From<&str> for mutstr {
     }
 }
 
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from(String::from("abc123"));
+/// assert_eq!(result.as_str(), "abc123");
+/// ```
 impl From<String> for mutstr {
     #[inline]
     fn from(value: String) -> Self {
@@ -256,6 +282,12 @@ impl From<String> for mutstr {
     }
 }
 
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::default();
+/// assert_eq!(result.as_str(), "");
+/// ```
 impl Default for mutstr {
     #[inline]
     fn default() -> Self {
@@ -263,6 +295,12 @@ impl Default for mutstr {
     }
 }
 
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// assert_eq!(result.to_string(), String::from("abc123"));
+/// ```
 impl ToString for mutstr {
     #[inline]
     fn to_string(&self) -> String {
@@ -270,6 +308,12 @@ impl ToString for mutstr {
     }
 }
 
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// //println!("{:?}", result); // mutstr { _ptr: ... }
+/// ```
 impl fmt::Debug for mutstr {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -277,6 +321,12 @@ impl fmt::Debug for mutstr {
     }
 }
 
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// assert_eq!(&result[..], "abc123");
+/// ```
 impl ops::Index<ops::RangeFull> for mutstr {
     type Output = str;
 
@@ -285,6 +335,12 @@ impl ops::Index<ops::RangeFull> for mutstr {
         self.as_str()
     }
 }
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// assert_eq!(&result[0..6], "abc123");
+/// ```
 impl ops::Index<ops::Range<usize>> for mutstr {
     type Output = str;
 
@@ -293,6 +349,12 @@ impl ops::Index<ops::Range<usize>> for mutstr {
         &self[..][index]
     }
 }
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// assert_eq!(&result[..6], "abc123");
+/// ```
 impl ops::Index<ops::RangeTo<usize>> for mutstr {
     type Output = str;
 
@@ -301,6 +363,12 @@ impl ops::Index<ops::RangeTo<usize>> for mutstr {
         &self[..][index]
     }
 }
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// assert_eq!(&result[0..], "abc123");
+/// ```
 impl ops::Index<ops::RangeFrom<usize>> for mutstr {
     type Output = str;
 
@@ -393,50 +461,4 @@ impl ops::SubAssign<(usize, String)> for mutstr {
 }
 
 #[cfg(feature = "serde")]
-use serde::de::Visitor;
-
-#[cfg(feature = "serde")]
-struct MutStrVisitor;
-
-#[cfg(feature = "serde")]
-impl<'de> Visitor<'de> for MutStrVisitor {
-    type Value = mutstr;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("an `&str` or `String`")
-    }
-
-    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        Ok(mutstr::from(v))
-    }
-
-    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        Ok(mutstr::from(v))
-    }
-}
-
-#[cfg(feature = "serde")]
-impl<'de> serde::Deserialize<'de> for mutstr {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_string(MutStrVisitor)
-    }
-}
-
-#[cfg(feature = "serde")]
-impl serde::Serialize for mutstr {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str(self.as_str())
-    }
-}
+include!("serde.rs");
