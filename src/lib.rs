@@ -210,12 +210,11 @@ impl mutstr {
 
         let value_size = std::mem::size_of_val(value);
         let old_size = self.size();
-        let new_size = old_size + value_size;
-        self._ptr.realloc(new_size);
+        self._ptr.realloc(old_size + value_size);
 
         unsafe {
-            let p = self.ptr_mut().add(old_size);
-            std::ptr::copy(value.as_ptr(), p, value_size);
+            let dst_ptr = self.ptr_mut().add(old_size);
+            std::ptr::copy(value.as_ptr(), dst_ptr, value_size);
         };
     }
 
