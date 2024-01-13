@@ -38,17 +38,17 @@ impl MutStrPtr {
         self.1
     }
 
+    #[inline(always)]
+    fn layout(&self) -> alloc::Layout {
+        unsafe { alloc::Layout::from_size_align_unchecked(self.size(), 1) }
+    }
+
     fn realloc(&mut self, new_value_size: usize) {
         unsafe {
             let old_layout = self.layout();
             self.0 = alloc::realloc(self.raw(), old_layout, new_value_size);
         };
         self.1 = new_value_size;
-    }
-
-    #[inline(always)]
-    fn layout(&self) -> alloc::Layout {
-        unsafe { alloc::Layout::from_size_align_unchecked(self.size(), 1) }
     }
 }
 
