@@ -17,14 +17,14 @@ If you don't change the data at runtime, use `Box<str>`. If you prefer speed whe
 The inner value of `Box<str>` cannot be changed, for this reason, the old `Box<str>` has to be replaced with a new allocated `Box<str>`, which is more inefficient than reallocate the inner value. [See our benchmarks](https://github.com/ThisAccountHasBeenSuspended/MutStr/blob/main/benches/all.rs)
 
 ## Benchmark results
-This benchmark was updated at `January 8th, 2024` and can be found [here](https://github.com/ThisAccountHasBeenSuspended/MutStr/blob/master/benches/all.rs).
+This benchmark was updated at `January 13th, 2024` and can be found [here](https://github.com/ThisAccountHasBeenSuspended/MutStr/blob/master/benches/all.rs).
 ```
-create_box                   29 ns/iter (+/- 1)
-create_string                29 ns/iter (+/- 1)
-create_mutstr                29 ns/iter (+/- 0)
-replace_box_data             71 ns/iter (+/- 2)
-replace_string_data          51 ns/iter (+/- 3)
-replace_mutstr_data          46 ns/iter (+/- 3)
+create_box                   28 ns/iter (+/- 3)
+create_string                28 ns/iter (+/- 1)
+create_mutstr                28 ns/iter (+/- 0)
+replace_box_data             104 ns/iter (+/- 3)
+replace_string_data          85 ns/iter (+/- 7)
+replace_mutstr_data          82 ns/iter (+/- 1)
 ```
 
 ## Example
