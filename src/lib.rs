@@ -6,7 +6,7 @@
 //! uses 16 bytes.
 //! [String](https://github.com/rust-lang/rust/blob/master/library/alloc/src/string.rs)
 //! uses 24 bytes.
-//! 
+//!
 //! ### Example
 //! ```
 //! use std::collections::HashMap;
@@ -131,7 +131,7 @@ impl mutstr {
         self._ptr.layout()
     }
 
-    /// Get the allocated data as `&[u8]`.
+    /// Get the allocated data as `&[u8]`
     ///
     /// **Notice:** _Can be used to compare with `&str` or `String`_
     /// ### Example
@@ -234,6 +234,12 @@ impl mutstr {
     }
 }
 
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// assert_eq!(result.as_str(), "abc123");
+/// ```
 impl From<&str> for mutstr {
     fn from(value: &str) -> Self {
         let value_size = std::mem::size_of_val(value);
@@ -249,6 +255,12 @@ impl From<&str> for mutstr {
     }
 }
 
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from(String::from("abc123"));
+/// assert_eq!(result.as_str(), "abc123");
+/// ```
 impl From<String> for mutstr {
     #[inline]
     fn from(value: String) -> Self {
@@ -256,6 +268,12 @@ impl From<String> for mutstr {
     }
 }
 
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::default();
+/// assert_eq!(result.as_str(), "");
+/// ```
 impl Default for mutstr {
     #[inline]
     fn default() -> Self {
@@ -263,6 +281,12 @@ impl Default for mutstr {
     }
 }
 
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// assert_eq!(result.to_string(), String::from("abc123"));
+/// ```
 impl ToString for mutstr {
     #[inline]
     fn to_string(&self) -> String {
@@ -270,6 +294,12 @@ impl ToString for mutstr {
     }
 }
 
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// //println!("{:?}", result); // mutstr { _ptr: ... }
+/// ```
 impl fmt::Debug for mutstr {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -277,6 +307,12 @@ impl fmt::Debug for mutstr {
     }
 }
 
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// assert_eq!(&result[..], "abc123");
+/// ```
 impl ops::Index<ops::RangeFull> for mutstr {
     type Output = str;
 
@@ -285,6 +321,12 @@ impl ops::Index<ops::RangeFull> for mutstr {
         self.as_str()
     }
 }
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// assert_eq!(&result[0..6], "abc123");
+/// ```
 impl ops::Index<ops::Range<usize>> for mutstr {
     type Output = str;
 
@@ -293,6 +335,12 @@ impl ops::Index<ops::Range<usize>> for mutstr {
         &self[..][index]
     }
 }
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// assert_eq!(&result[..6], "abc123");
+/// ```
 impl ops::Index<ops::RangeTo<usize>> for mutstr {
     type Output = str;
 
@@ -301,6 +349,12 @@ impl ops::Index<ops::RangeTo<usize>> for mutstr {
         &self[..][index]
     }
 }
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("abc123");
+/// assert_eq!(&result[0..], "abc123");
+/// ```
 impl ops::Index<ops::RangeFrom<usize>> for mutstr {
     type Output = str;
 
