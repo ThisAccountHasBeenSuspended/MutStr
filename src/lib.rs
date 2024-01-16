@@ -471,6 +471,7 @@ impl ops::SubAssign<(usize, String)> for mutstr {
 impl ops::Deref for mutstr {
     type Target = str;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         self.as_str()
     }
@@ -484,6 +485,7 @@ impl ops::Deref for mutstr {
 /// // ...
 /// ```
 impl ops::DerefMut for mutstr {
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.as_str_mut()
     }
@@ -497,6 +499,7 @@ impl ops::DerefMut for mutstr {
 /// assert_eq!("test", result_str);
 /// ```
 impl AsRef<str> for mutstr {
+    #[inline]
     fn as_ref(&self) -> &str {
         self
     }
@@ -510,6 +513,7 @@ impl AsRef<str> for mutstr {
 /// // ...
 /// ```
 impl AsMut<str> for mutstr {
+    #[inline]
     fn as_mut(&mut self) -> &mut str {
         self.as_str_mut()
     }
