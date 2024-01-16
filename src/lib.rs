@@ -461,5 +461,59 @@ impl ops::SubAssign<(usize, String)> for mutstr {
     }
 }
 
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("test");
+/// let result_str = &*result;
+/// assert_eq!("test", result_str);
+/// ```
+impl ops::Deref for mutstr {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_str()
+    }
+}
+
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let mut result = mutstr::from("test");
+/// let result_str = &mut *result;
+/// // ...
+/// ```
+impl ops::DerefMut for mutstr {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.as_str_mut()
+    }
+}
+
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let result = mutstr::from("test");
+/// let result_str: &str = &result;
+/// assert_eq!("test", result_str);
+/// ```
+impl AsRef<str> for mutstr {
+    fn as_ref(&self) -> &str {
+        self
+    }
+}
+
+/// ### Example
+/// ```
+/// use mutstr::mutstr;
+/// let mut result = mutstr::from("test");
+/// let result_str: &mut str = &mut result;
+/// // ...
+/// ```
+impl AsMut<str> for mutstr {
+    fn as_mut(&mut self) -> &mut str {
+        self.as_str_mut()
+    }
+}
+
 #[cfg(feature = "serde")]
 include!("serde.rs");
