@@ -4,18 +4,18 @@
 //!
 //! [MutStr](https://github.com/ThisAccountHasBeenSuspended/MutStr)
 //! uses 16 bytes.
+//! [Box](https://github.com/rust-lang/rust/blob/master/library/alloc/src/boxed.rs)
+//! uses 16 bytes.
 //! [String](https://github.com/rust-lang/rust/blob/master/library/alloc/src/string.rs)
 //! uses 24 bytes.
 //!
 //! ### Example
 //! ```
-//! use std::collections::HashMap;
 //! use mutstr::mutstr;
-//! let mut result = HashMap::<Box<str>, mutstr>::new(); // Create hashmap
-//! result.insert(Box::from("hello"), mutstr::from("friend")); // Insert into hashmap
-//! let value = result.get_mut("hello").unwrap(); // Get from hashmap
-//! *value += " :)"; // Add to value
-//! assert_eq!(value.as_str(), "friend :)");
+//! let mut result = mutstr::from("friend"); // Create
+//! result += " :) :) :)"; // Add
+//! result -= (2, " :)"); // Remove(2 times)
+//! assert_eq!(result.as_str(), "friend :)");
 //! ```
 
 use std::{alloc, fmt, ops};
@@ -134,6 +134,7 @@ impl mutstr {
     /// Get the allocated data as `&[u8]`
     ///
     /// **Notice:** _Can be used to compare with `&str` or `String`_
+    ///
     /// ### Example
     /// ```
     /// use mutstr::mutstr;
@@ -260,10 +261,10 @@ impl From<&str> for mutstr {
         unsafe {
             let value_layout: alloc::Layout =
                 alloc::Layout::from_size_align_unchecked(value_size, 1);
-            let value_ptr: *mut u8 = alloc::alloc(value_layout);
-            std::ptr::copy(value.as_ptr(), value_ptr, value_size);
+            let new_ptr: *mut u8 = alloc::alloc(value_layout);
+            std::ptr::copy(value.as_ptr(), new_ptr, value_size);
             Self {
-                _ptr: MutStrPtr(value_ptr, value_size),
+                _ptr: MutStrPtr(new_ptr, value_size),
             }
         }
     }
