@@ -28,6 +28,7 @@ replace_mutstr_data          82 ns/iter (+/- 1)
 ```
 
 ## Example
+You can easily add new values or remove existing ones with `MutStr`.
 ```Rust
 use mutstr::mutstr;
 
@@ -46,7 +47,22 @@ fn main() {
 }
 ```
 
-## Example with `HashMap`
+## Example
+You can easily get a `&str` from a `MutStr` like you would with `String`.
+```Rust
+use mutstr::mutstr;
+
+fn main() {
+  let first = String::from("hello friend");
+  let first_str = &*first; // String as `&str`
+  let second = mutstr::from("hello friend");
+  let second_str = &*second; // MutStr as `&str`
+  assert_eq!(first_str, second_str);
+}
+```
+
+## Example
+You can easily use `MutStr` in hash tables and vectors, like you can with `Box<str>`.
 ```Rust
 use std::collections::HashMap;
 use mutstr::mutstr;
