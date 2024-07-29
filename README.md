@@ -4,27 +4,31 @@
 [![Stargazers][stars-shield]][stars-url]
 [![Issues][issues-shield]][issues-url]
 
-[MutStr](https://github.com/ThisAccountHasBeenSuspended/MutStr) is a good solution if you want to reduce memory consumption for e.g. hash tables like `<String, String>` and need something more efficient than `Box<str>` because you have to change the data at runtime.
+`MutStr` is a good alternative to `String` and `&str`.
 
-- [MutStr](https://github.com/ThisAccountHasBeenSuspended/MutStr)
-uses 16 bytes.
-- [String](https://github.com/rust-lang/rust/blob/main/library/alloc/src/string.rs)
-uses 24 bytes.
+- `&str`
+- `MutStr`
+- - uses 16 bytes.
+- `String`
+- - uses 24 bytes.
 
-If you don't change the data at runtime, use `Box<str>`. If you prefer speed when adding new data, choose `String`. If you need low memory consumption and changeable data, choose `MutStr`.
+`MutStr` was written as a replacement for `Box<str>` and `String` for hashtables. If you don't change the data at runtime, use `Box<str>`. If you prefer speed when adding new data, choose `String`. If you need low memory consumption and changeable data, choose `MutStr`.
 
-## What does "... more efficient than `Box<str>` ..." mean?
-The inner value of `Box<str>` cannot be changed, for this reason, the old `Box<str>` has to be replaced with a new allocated `Box<str>`, which is more inefficient than reallocate the inner value. [See our benchmarks](https://github.com/ThisAccountHasBeenSuspended/MutStr/blob/main/benches/all.rs)
+> [!TIP]
+> `MutStr` is compatible with [`serde`](https://crates.io/crates/serde).
+> 
+> Use `features` as in the following example to be able to use `serde`:<br>
+> `mutstr = { git = "https://github.com/ThisAccountHasBeenSuspended/MutStr", branch = "main", features = ["serde"] }`
 
 ## Benchmark results
-This benchmark was updated at `January 13th, 2024` and can be found [here](https://github.com/ThisAccountHasBeenSuspended/MutStr/blob/master/benches/all.rs).
+This benchmark was updated at `July 29th, 2024` and can be found [here](https://github.com/ThisAccountHasBeenSuspended/MutStr/blob/master/benches/all.rs).
 ```
-create_box                   28 ns/iter (+/- 3)
-create_string                28 ns/iter (+/- 1)
-create_mutstr                28 ns/iter (+/- 0)
-replace_box_data             104 ns/iter (+/- 3)
-replace_string_data          85 ns/iter (+/- 7)
-replace_mutstr_data          82 ns/iter (+/- 1)
+test create_box          ... bench:          29.10 ns/iter (+/- 1.95)
+test create_mutstr       ... bench:          28.91 ns/iter (+/- 1.95)
+test create_string       ... bench:          25.91 ns/iter (+/- 1.29)
+test replace_box_data    ... bench:         113.60 ns/iter (+/- 6.96)
+test replace_mutstr_data ... bench:          92.33 ns/iter (+/- 5.40)
+test replace_string_data ... bench:          92.47 ns/iter (+/- 5.10)
 ```
 
 ## Example

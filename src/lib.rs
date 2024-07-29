@@ -1,13 +1,11 @@
 //! [MutStr](https://github.com/ThisAccountHasBeenSuspended/MutStr)
-//! is a good solution if you want to reduce memory consumption for e.g. hash tables like `<String, String>`
-//! and need something more efficient than `Box<str>` because you have to change the data at runtime.
+//! is a good alternative to `String` and `&str`.
 //!
-//! [MutStr](https://github.com/ThisAccountHasBeenSuspended/MutStr)
-//! uses 16 bytes.
-//! [Box](https://github.com/rust-lang/rust/blob/master/library/alloc/src/boxed.rs)
-//! uses 16 bytes.
-//! [String](https://github.com/rust-lang/rust/blob/master/library/alloc/src/string.rs)
-//! uses 24 bytes.
+//! - `&str`
+//! - `MutStr`
+//! - - uses 16 bytes.
+//! - `String`
+//! - - uses 24 bytes.
 //!
 //! ### Example
 //! ```
@@ -156,18 +154,20 @@ impl mutstr {
     /// use mutstr::mutstr;
     /// let mut result = mutstr::from("Hello");
     ///
-    /// let mut bytes = result.as_bytes_mut();
-    /// bytes[0] = 0x6f; // o
-    /// bytes[1] = 0x6c; // l
-    /// bytes[2] = 0x6c; // l
-    /// bytes[3] = 0x65; // e
-    /// bytes[4] = 0x48; // H
+    /// unsafe {
+    ///     let mut bytes = result.as_bytes_mut();
+    ///     bytes[0] = 0x6f; // o
+    ///     bytes[1] = 0x6c; // l
+    ///     bytes[2] = 0x6c; // l
+    ///     bytes[3] = 0x65; // e
+    ///     bytes[4] = 0x48; // H
+    /// };
     ///
     /// assert_eq!(result.as_bytes(), b"olleH");
     /// ```
     #[inline(always)]
-    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
-        unsafe { std::slice::from_raw_parts_mut(self.ptr_mut(), self.size()) }
+    pub unsafe fn as_bytes_mut(&mut self) -> &mut [u8] {
+        std::slice::from_raw_parts_mut(self.ptr_mut(), self.size())
     }
 
     /// Get the allocated data as `&str`
