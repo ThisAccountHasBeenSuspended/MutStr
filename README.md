@@ -1,4 +1,7 @@
 # MutStr
+> [!WARNING]
+> There will be no more updates. The project can be continued through a fork. It would be nice of you to mention me for my work if you use code from my project :)
+
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
