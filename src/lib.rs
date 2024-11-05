@@ -1,13 +1,11 @@
 //! [MutStr](https://github.com/ThisAccountHasBeenSuspended/MutStr)
-//! is a good solution if you want to reduce memory consumption for e.g. hash tables like `<String, String>`
-//! and need something more efficient than `Box<str>` because you have to change the data at runtime.
+//! `MutStr` is a mutable alternative for `&str`.
 //!
-//! [MutStr](https://github.com/ThisAccountHasBeenSuspended/MutStr)
-//! uses 16 bytes.
-//! [Box](https://github.com/rust-lang/rust/blob/master/library/alloc/src/boxed.rs)
-//! uses 16 bytes.
-//! [String](https://github.com/rust-lang/rust/blob/master/library/alloc/src/string.rs)
-//! uses 24 bytes.
+//! - `&str`
+//! - `MutStr`
+//! - - uses 16 bytes.
+//! - `String`
+//! - - uses 24 bytes.
 //!
 //! ### Example
 //! ```
@@ -20,13 +18,9 @@
 
 use std::{alloc, fmt, ops};
 
-#[doc(hidden)]
-struct MutStrPtr(*mut u8, usize); // size = 16 (0x10), align = 0x8
-#[doc(hidden)]
+struct MutStrPtr(*mut u8, usize);
 unsafe impl Send for MutStrPtr {}
-#[doc(hidden)]
 unsafe impl Sync for MutStrPtr {}
-#[doc(hidden)]
 impl MutStrPtr {
     #[inline(always)]
     fn raw(&self) -> *mut u8 {
@@ -43,16 +37,15 @@ impl MutStrPtr {
         unsafe { alloc::Layout::from_size_align_unchecked(self.size(), 1) }
     }
 
-    fn realloc(&mut self, new_value_size: usize) {
+    fn realloc(&mut self, new_size: usize) {
         unsafe {
             let old_layout = self.layout();
-            self.0 = alloc::realloc(self.raw(), old_layout, new_value_size);
+            self.0 = alloc::realloc(self.raw(), old_layout, new_size);
         };
-        self.1 = new_value_size;
+        self.1 = new_size;
     }
 }
 
-#[doc(hidden)]
 #[cfg(feature = "drop")]
 impl Drop for MutStrPtr {
     fn drop(&mut self) {
@@ -72,13 +65,12 @@ impl Drop for MutStrPtr {
 /// ```
 #[allow(non_camel_case_types)]
 pub struct mutstr {
-    // size = 16 (0x10), align = 0x8
     #[doc(hidden)]
     _ptr: MutStrPtr,
 }
 
 impl mutstr {
-    /// The raw pointer of the allocated heap
+    /// The raw pointer of the allocated heap.
     ///
     /// ### Example
     /// ```
@@ -91,20 +83,23 @@ impl mutstr {
         self._ptr.raw() as *const u8
     }
 
-    /// The raw pointer of the allocated heap
+    /// The raw pointer of the allocated heap.
     ///
     /// ### Example
     /// ```
     /// use mutstr::mutstr;
     /// let mut result = mutstr::from("abc");
-    /// println!("{:?}", result.ptr_mut());
+    /// unsafe {
+    ///     println!("{:?}", result.ptr_mut());
+    /// };
     /// ```
     #[inline(always)]
-    pub fn ptr_mut(&mut self) -> *mut u8 {
+    #[allow(clippy::missing_safety_doc)]
+    pub unsafe fn ptr_mut(&mut self) -> *mut u8 {
         self._ptr.raw()
     }
 
-    /// The size of the data (is similar to the `len()` function of e.g. `&str`)
+    /// The size of the data (is similar to the `len()` function of e.g. `&str`).
     ///
     /// ### Example
     /// ```
@@ -117,7 +112,7 @@ impl mutstr {
         self._ptr.size()
     }
 
-    /// Get the pointer layout
+    /// Get the pointer layout.
     ///
     /// ### Example
     /// ```
@@ -131,14 +126,14 @@ impl mutstr {
         self._ptr.layout()
     }
 
-    /// Get the allocated data as `&[u8]`
+    /// Get the allocated data as `&[u8]`.
     ///
-    /// **Notice:** _Can be used to compare with `&str` or `String`_
+    /// **Notice:** _Can be used to compare with `&str`_.
     ///
     /// ### Example
     /// ```
     /// use mutstr::mutstr;
-    /// let first = String::from("abc");
+    /// let first = "abc";
     /// let second = mutstr::from("abc");
     /// assert_eq!(first.as_bytes(), second.as_bytes());
     /// ```
@@ -147,30 +142,33 @@ impl mutstr {
         unsafe { std::slice::from_raw_parts(self.ptr(), self.size()) }
     }
 
-    /// Get the allocated data as `&mut [u8]`
+    /// Get the allocated data as `&mut [u8]`.
     ///
-    /// **Notice:** _Like `as_bytes()` but mutable_
+    /// **Notice:** _Like `as_bytes()` but mutable_.
     ///
     /// ### Example
     /// ```
     /// use mutstr::mutstr;
     /// let mut result = mutstr::from("Hello");
     ///
-    /// let mut bytes = result.as_bytes_mut();
-    /// bytes[0] = 0x6f; // o
-    /// bytes[1] = 0x6c; // l
-    /// bytes[2] = 0x6c; // l
-    /// bytes[3] = 0x65; // e
-    /// bytes[4] = 0x48; // H
+    /// unsafe {
+    ///     let mut bytes = result.as_bytes_mut();
+    ///     bytes[0] = 0x6f; // o
+    ///     bytes[1] = 0x6c; // l
+    ///     bytes[2] = 0x6c; // l
+    ///     bytes[3] = 0x65; // e
+    ///     bytes[4] = 0x48; // H
+    /// };
     ///
     /// assert_eq!(result.as_bytes(), b"olleH");
     /// ```
     #[inline(always)]
-    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
-        unsafe { std::slice::from_raw_parts_mut(self.ptr_mut(), self.size()) }
+    #[allow(clippy::missing_safety_doc)]
+    pub unsafe fn as_bytes_mut(&mut self) -> &mut [u8] {
+        std::slice::from_raw_parts_mut(self.ptr_mut(), self.size())
     }
 
-    /// Get the allocated data as `&str`
+    /// Get the allocated data as `&str`.
     ///
     /// ### Example
     /// ```
@@ -183,15 +181,16 @@ impl mutstr {
         unsafe { std::str::from_utf8_unchecked(self.as_bytes()) }
     }
 
-    /// Get the allocated data as `&mut str`
+    /// Get the allocated data as `&mut str`.
     ///
     /// **Notice:** _Like `as_str()` but mutable_
     #[inline(always)]
-    pub fn as_str_mut(&mut self) -> &mut str {
-        unsafe { std::str::from_utf8_unchecked_mut(self.as_bytes_mut()) }
+    #[allow(clippy::missing_safety_doc)]
+    pub unsafe fn as_str_mut(&mut self) -> &mut str {
+        std::str::from_utf8_unchecked_mut(self.as_bytes_mut())
     }
 
-    /// Reallocates the existing heap if the size is not the same and write `new_value` into it
+    /// Reallocates the existing heap if the size is not the same and write `new_value` into it.
     ///
     /// ### Example
     /// ```
@@ -210,7 +209,7 @@ impl mutstr {
         };
     }
 
-    /// Reallocates the existing heap and write `value` at the end of the data
+    /// Reallocates the existing heap and write `value` at the end of the data.
     ///
     /// ### Example
     /// ```
@@ -234,7 +233,7 @@ impl mutstr {
         };
     }
 
-    /// Reallocates the existing heap to `0`, to free memory
+    /// Reallocates the existing heap to `0`, to free memory.
     ///
     /// ### Example
     /// ```
@@ -249,12 +248,6 @@ impl mutstr {
     }
 }
 
-/// ### Example
-/// ```
-/// use mutstr::mutstr;
-/// let result = mutstr::from("abc123");
-/// assert_eq!(result.as_str(), "abc123");
-/// ```
 impl From<&str> for mutstr {
     fn from(value: &str) -> Self {
         let value_size = std::mem::size_of_val(value);
@@ -270,25 +263,6 @@ impl From<&str> for mutstr {
     }
 }
 
-/// ### Example
-/// ```
-/// use mutstr::mutstr;
-/// let result = mutstr::from(String::from("abc123"));
-/// assert_eq!(result.as_str(), "abc123");
-/// ```
-impl From<String> for mutstr {
-    #[inline]
-    fn from(value: String) -> Self {
-        Self::from(&*value)
-    }
-}
-
-/// ### Example
-/// ```
-/// use mutstr::mutstr;
-/// let result = mutstr::default();
-/// assert_eq!(result.as_str(), "");
-/// ```
 impl Default for mutstr {
     #[inline]
     fn default() -> Self {
@@ -296,25 +270,13 @@ impl Default for mutstr {
     }
 }
 
-/// ### Example
-/// ```
-/// use mutstr::mutstr;
-/// let result = mutstr::from("abc123");
-/// assert_eq!(result.to_string(), String::from("abc123"));
-/// ```
-impl ToString for mutstr {
+impl fmt::Display for mutstr {
     #[inline]
-    fn to_string(&self) -> String {
-        self.as_str().to_owned()
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
     }
 }
 
-/// ### Example
-/// ```
-/// use mutstr::mutstr;
-/// let result = mutstr::from("abc123");
-/// //println!("{:?}", result); // mutstr { _ptr: ... }
-/// ```
 impl fmt::Debug for mutstr {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -322,12 +284,6 @@ impl fmt::Debug for mutstr {
     }
 }
 
-/// ### Example
-/// ```
-/// use mutstr::mutstr;
-/// let result = mutstr::from("abc123");
-/// assert_eq!(&result[..], "abc123");
-/// ```
 impl ops::Index<ops::RangeFull> for mutstr {
     type Output = str;
 
@@ -336,12 +292,7 @@ impl ops::Index<ops::RangeFull> for mutstr {
         self.as_str()
     }
 }
-/// ### Example
-/// ```
-/// use mutstr::mutstr;
-/// let result = mutstr::from("abc123");
-/// assert_eq!(&result[0..6], "abc123");
-/// ```
+
 impl ops::Index<ops::Range<usize>> for mutstr {
     type Output = str;
 
@@ -350,12 +301,7 @@ impl ops::Index<ops::Range<usize>> for mutstr {
         &self[..][index]
     }
 }
-/// ### Example
-/// ```
-/// use mutstr::mutstr;
-/// let result = mutstr::from("abc123");
-/// assert_eq!(&result[..6], "abc123");
-/// ```
+
 impl ops::Index<ops::RangeTo<usize>> for mutstr {
     type Output = str;
 
@@ -364,12 +310,7 @@ impl ops::Index<ops::RangeTo<usize>> for mutstr {
         &self[..][index]
     }
 }
-/// ### Example
-/// ```
-/// use mutstr::mutstr;
-/// let result = mutstr::from("abc123");
-/// assert_eq!(&result[0..], "abc123");
-/// ```
+
 impl ops::Index<ops::RangeFrom<usize>> for mutstr {
     type Output = str;
 
@@ -379,12 +320,6 @@ impl ops::Index<ops::RangeFrom<usize>> for mutstr {
     }
 }
 
-/// ```
-/// use mutstr::mutstr;
-/// let mut test = mutstr::from("Hello my");
-/// test += " friend";
-/// assert_eq!(test.as_str(), "Hello my friend");
-/// ```
 impl ops::AddAssign<&str> for mutstr {
     #[inline]
     fn add_assign(&mut self, rhs: &str) {
@@ -392,25 +327,6 @@ impl ops::AddAssign<&str> for mutstr {
     }
 }
 
-/// ```
-/// use mutstr::mutstr;
-/// let mut test = mutstr::from("Hello my");
-/// test += " friend".to_owned();
-/// assert_eq!(test.as_str(), "Hello my friend");
-/// ```
-impl ops::AddAssign<String> for mutstr {
-    #[inline]
-    fn add_assign(&mut self, rhs: String) {
-        self.push(&rhs);
-    }
-}
-
-/// ```
-/// use mutstr::mutstr;
-/// let mut test = mutstr::from("Hello my friend");
-/// test -= " friend";
-/// assert_eq!(test.as_str(), "Hello my");
-/// ```
 impl ops::SubAssign<&str> for mutstr {
     #[inline]
     fn sub_assign(&mut self, rhs: &str) {
@@ -419,12 +335,6 @@ impl ops::SubAssign<&str> for mutstr {
     }
 }
 
-/// ```
-/// use mutstr::mutstr;
-/// let mut test = mutstr::from("Hello my friend");
-/// test -= (1, " friend");
-/// assert_eq!(test.as_str(), "Hello my");
-/// ```
 impl ops::SubAssign<(usize, &str)> for mutstr {
     #[inline]
     fn sub_assign(&mut self, rhs: (usize, &str)) {
@@ -433,91 +343,94 @@ impl ops::SubAssign<(usize, &str)> for mutstr {
     }
 }
 
-/// ```
-/// use mutstr::mutstr;
-/// let mut test = mutstr::from("Hello my friend");
-/// test -= " friend".to_owned();
-/// assert_eq!(test.as_str(), "Hello my");
-/// ```
-impl ops::SubAssign<String> for mutstr {
-    #[inline]
-    fn sub_assign(&mut self, rhs: String) {
-        let new_value = self.as_str().replace(&*rhs, "");
-        self.replace_with(&new_value);
+#[cfg(feature = "serde")]
+include!("serde.rs");
+
+#[cfg(test)]
+mod implementations {
+    use super::mutstr;
+
+    #[test]
+    fn from() {
+        let result = mutstr::from("abc123");
+        assert_eq!(result.as_str(), "abc123");
     }
-}
 
-/// ```
-/// use mutstr::mutstr;
-/// let mut test = mutstr::from("Hello my friend");
-/// test -= (1, " friend".to_owned());
-/// assert_eq!(test.as_str(), "Hello my");
-/// ```
-impl ops::SubAssign<(usize, String)> for mutstr {
-    #[inline]
-    fn sub_assign(&mut self, rhs: (usize, String)) {
-        let new_value = self.as_str().replacen(&*rhs.1, "", rhs.0);
-        self.replace_with(&new_value);
+    #[test]
+    fn default() {
+        let result = mutstr::default();
+        assert_eq!(result.as_str(), "");
     }
-}
 
-/// ### Example
-/// ```
-/// use mutstr::mutstr;
-/// let result = mutstr::from("test");
-/// let result_str = &*result;
-/// assert_eq!("test", result_str);
-/// ```
-impl ops::Deref for mutstr {
-    type Target = str;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        self.as_str()
+    #[test]
+    fn display() {
+        let result = format!("{:?}", mutstr::from("abc123"));
+        if !result.starts_with("mutstr { _ptr: ") {
+            assert_eq!('a', 'b');
+        }
     }
-}
-
-/// ### Example
-/// ```
-/// use mutstr::mutstr;
-/// let mut result = mutstr::from("test");
-/// let result_str = &mut *result;
-/// // ...
-/// ```
-impl ops::DerefMut for mutstr {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.as_str_mut()
+    
+    #[test]
+    fn range_full() {
+        let result = mutstr::from("abc123");
+        assert_eq!(&result[..], "abc123");
     }
-}
 
-/// ### Example
-/// ```
-/// use mutstr::mutstr;
-/// let result = mutstr::from("test");
-/// let result_str: &str = &result;
-/// assert_eq!("test", result_str);
-/// ```
-impl AsRef<str> for mutstr {
-    #[inline]
-    fn as_ref(&self) -> &str {
-        self
+    #[test]
+    fn range() {
+        let result = mutstr::from("abc123");
+        assert_eq!(&result[0..6], "abc123");
     }
-}
 
-/// ### Example
-/// ```
-/// use mutstr::mutstr;
-/// let mut result = mutstr::from("test");
-/// let result_str: &mut str = &mut result;
-/// // ...
-/// ```
-impl AsMut<str> for mutstr {
-    #[inline]
-    fn as_mut(&mut self) -> &mut str {
-        self.as_str_mut()
+    #[test]
+    fn range_to() {
+        let result = mutstr::from("abc123");
+        assert_eq!(&result[..6], "abc123");
+    }
+
+    #[test]
+    fn range_from() {
+        let result = mutstr::from("abc123");
+        assert_eq!(&result[0..], "abc123");
+    }
+
+    #[test]
+    fn add_assign() {
+        let mut result = mutstr::from("Hello my");
+        result += " friend";
+        assert_eq!(result.as_str(), "Hello my friend");
+    }
+
+    #[test]
+    fn sub_assign() {
+        let mut result = mutstr::from("Hello my friend");
+        result -= " friend";
+        assert_eq!(result.as_str(), "Hello my");
+    }
+
+    #[test]
+    fn sub_assign_extended() {
+        let mut result = mutstr::from("Hello my friend");
+        result -= (1, " friend");
+        assert_eq!(result.as_str(), "Hello my");
     }
 }
 
 #[cfg(feature = "serde")]
-include!("serde.rs");
+#[cfg(test)]
+mod serde_implementation {
+    use super::mutstr;
+
+    #[derive(Default, serde::Deserialize, serde::Serialize)]
+    struct MyStruct {
+        name: Option<mutstr>,
+    }
+    
+    #[test]
+    fn from_to() {
+        let raw = r#"{"name":"Nick"}"#;
+        let result = serde_json::from_str::<MyStruct>(raw).unwrap();
+        assert_eq!(result.name.as_ref().unwrap().as_str(), "Nick");
+        assert_eq!(serde_json::to_string(&result).unwrap(), raw);
+    }
+}

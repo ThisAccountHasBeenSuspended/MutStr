@@ -6,17 +6,10 @@ impl<'de> Visitor<'de> for MutStrVisitor {
     type Value = mutstr;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("an `&str` or `String`")
+        formatter.write_str("an `&str`")
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        Ok(mutstr::from(v))
-    }
-
-    fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
@@ -29,7 +22,7 @@ impl<'de> serde::Deserialize<'de> for mutstr {
     where
         D: serde::Deserializer<'de>,
     {
-        deserializer.deserialize_string(MutStrVisitor)
+        deserializer.deserialize_str(MutStrVisitor)
     }
 }
 

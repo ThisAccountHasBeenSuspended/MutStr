@@ -1,17 +1,18 @@
 [package]
 name = "mutstr"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 repository = "https://github.com/ThisAccountHasBeenSuspended/MutStr"
 license = "MIT OR Apache-2.0"
 authors = ["Nick-Ilhan Atamgüc <nickatamguec@outlook.com>"]
-keywords = ["str", "string", "mut", "mutable"]
+keywords = ["mutstr", "str", "string", "mut", "mutable"]
 description = "A mutable alternative for `&str`"
-exclude = ["benches/"]
 
 [dependencies]
-serde = { version = "1.0", optional = true }
+serde = { version = "1.0", optional = true, features = ["derive"] }
+serde_json = { version = "1.0", optional = true }
 
 [features]
 default = ["drop"]
 drop = []
+serde = ["dep:serde", "dep:serde_json"]
