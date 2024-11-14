@@ -18,6 +18,7 @@
 
 use std::{alloc, fmt, ops};
 
+// The first value is the pointer, the second the length of bytes.
 struct MutStrPtr(*mut u8, usize);
 unsafe impl Send for MutStrPtr {}
 unsafe impl Sync for MutStrPtr {}
@@ -99,17 +100,32 @@ impl mutstr {
         self._ptr.raw()
     }
 
-    /// The size of the data (is similar to the `len()` function of e.g. `&str`).
+    /// Get the length of the allocated bytes.
     ///
     /// ### Example
     /// ```
     /// use mutstr::mutstr;
-    /// let mut result = mutstr::from("abc");
+    /// let result = mutstr::from("abc");
     /// assert_eq!(result.size(), 3);
     /// ```
     #[inline(always)]
     pub fn size(&self) -> usize {
         self._ptr.size()
+    }
+
+    /// Short version of `self.size() == 0`.
+    /// 
+    /// Can be used to improve code readability.
+    ///
+    /// ### Example
+    /// ```
+    /// use mutstr::mutstr;
+    /// let result = mutstr::default();
+    /// assert_eq!(result.is_empty(), true);
+    /// ```
+    #[inline(always)]
+    pub fn is_empty(&self) -> bool {
+        self.size() == 0
     }
 
     /// Get the pointer layout.
@@ -190,46 +206,62 @@ impl mutstr {
         std::str::from_utf8_unchecked_mut(self.as_bytes_mut())
     }
 
-    /// Reallocates the existing heap if the size is not the same and write `new_value` into it.
+    /// Reallocates the existing heap if the size is not the same and overwrites the bytes with a copy of `value`.
     ///
     /// ### Example
     /// ```
     /// use mutstr::mutstr;
-    /// let mut result = mutstr::from("abc");
+    /// let mut result = mutstr::default();
+    /// // &str
     /// result.replace_with("123");
     /// assert_eq!(result.as_str(), "123");
+    /// // &[u8; 3]
+    /// result.replace_with(b"abc");
+    /// assert_eq!(result.as_str(), "abc");
     /// ```
-    pub fn replace_with(&mut self, new_value: &str) {
-        let new_value_size = std::mem::size_of_val(new_value);
-        if self.size() != new_value_size {
-            self._ptr.realloc(new_value_size);
+    pub fn replace_with<T>(&mut self, value: T)
+    where 
+        T: AsRef<[u8]>,
+    {
+        let value_ref = value.as_ref();
+        let value_size = std::mem::size_of_val(value_ref);
+        if self.size() != value_size {
+            self._ptr.realloc(value_size);
         }
         unsafe {
-            std::ptr::copy(new_value.as_ptr(), self.ptr_mut(), new_value_size);
+            std::ptr::copy(value_ref.as_ptr(), self.ptr_mut(), value_size);
         };
     }
 
-    /// Reallocates the existing heap and write `value` at the end of the data.
+    /// Reallocates the existing heap and writes `value` at the end.
     ///
     /// ### Example
     /// ```
     /// use mutstr::mutstr;
     /// let mut result = mutstr::from("abc");
+    /// // &str
     /// result.push("123");
     /// assert_eq!(result.as_str(), "abc123");
+    /// // &[u8; 3]
+    /// result.push(b"456");
+    /// assert_eq!(result.as_str(), "abc123456");
     /// ```
-    pub fn push(&mut self, value: &str) {
-        if value.is_empty() {
+    pub fn push<T>(&mut self, value: T) 
+    where 
+        T: AsRef<[u8]>
+    {
+        let value_ref = value.as_ref();
+        if value_ref.is_empty() {
             return;
         }
 
-        let value_size = std::mem::size_of_val(value);
+        let value_size = std::mem::size_of_val(value_ref);
         let old_size = self.size();
         self._ptr.realloc(old_size + value_size);
 
         unsafe {
             let dst_ptr = self.ptr_mut().add(old_size);
-            std::ptr::copy(value.as_ptr(), dst_ptr, value_size);
+            std::ptr::copy(value_ref.as_ptr(), dst_ptr, value_size);
         };
     }
 
@@ -248,8 +280,8 @@ impl mutstr {
     }
 }
 
-impl From<&str> for mutstr {
-    fn from(value: &str) -> Self {
+impl From<&[u8]> for mutstr {
+    fn from(value: &[u8]) -> Self {
         let value_size = std::mem::size_of_val(value);
         unsafe {
             let value_layout: alloc::Layout =
@@ -260,6 +292,13 @@ impl From<&str> for mutstr {
                 _ptr: MutStrPtr(new_ptr, value_size),
             }
         }
+    }
+}
+
+impl From<&str> for mutstr {
+    #[inline]
+    fn from(value: &str) -> Self {
+        Self::from(value.as_bytes())
     }
 }
 
@@ -343,6 +382,34 @@ impl ops::SubAssign<(usize, &str)> for mutstr {
     }
 }
 
+impl AsRef<[u8]> for mutstr {
+    #[inline]
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
+impl AsMut<[u8]> for mutstr {
+    #[inline]
+    fn as_mut(&mut self) -> &mut [u8] {
+        unsafe { self.as_bytes_mut() }
+    }
+}
+
+impl AsRef<str> for mutstr {
+    #[inline]
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
+
+impl AsMut<str> for mutstr {
+    #[inline]
+    fn as_mut(&mut self) -> &mut str {
+        unsafe { self.as_str_mut() }
+    }
+}
+
 #[cfg(feature = "serde")]
 include!("serde.rs");
 
@@ -351,7 +418,13 @@ mod implementations {
     use super::mutstr;
 
     #[test]
-    fn from() {
+    fn from_slice() {
+        let result = mutstr::from("abc123".as_bytes());
+        assert_eq!(result.as_str(), "abc123");
+    }
+
+    #[test]
+    fn from_str() {
         let result = mutstr::from("abc123");
         assert_eq!(result.as_str(), "abc123");
     }
@@ -414,23 +487,32 @@ mod implementations {
         result -= (1, " friend");
         assert_eq!(result.as_str(), "Hello my");
     }
-}
 
-#[cfg(feature = "serde")]
-#[cfg(test)]
-mod serde_implementation {
-    use super::mutstr;
-
-    #[derive(Default, serde::Deserialize, serde::Serialize)]
-    struct MyStruct {
-        name: Option<mutstr>,
-    }
-    
     #[test]
-    fn from_to() {
-        let raw = r#"{"name":"Nick"}"#;
-        let result = serde_json::from_str::<MyStruct>(raw).unwrap();
-        assert_eq!(result.name.as_ref().unwrap().as_str(), "Nick");
-        assert_eq!(serde_json::to_string(&result).unwrap(), raw);
+    fn as_ref_u8() {
+        let result = mutstr::default();
+        let value: &[u8] = result.as_ref();
+        assert_eq!(value, b"");
+    }
+
+    #[test]
+    fn as_mut_u8() {
+        let mut result = mutstr::default();
+        let value: &mut [u8] = result.as_mut();
+        assert_eq!(value, b"");
+    }
+
+    #[test]
+    fn as_ref_str() {
+        let result = mutstr::default();
+        let value: &str = result.as_ref();
+        assert_eq!(value, "");
+    }
+
+    #[test]
+    fn as_mut_str() {
+        let mut result = mutstr::default();
+        let value: &mut str = result.as_mut();
+        assert_eq!(value, "");
     }
 }

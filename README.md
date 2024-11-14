@@ -18,7 +18,7 @@
 > `MutStr` is compatible with [`serde`](https://crates.io/crates/serde).
 > 
 > Use `features` as in the following example to be able to use `serde`:<br>
-> `mutstr = { version = "0.3.0", features = ["serde"] }`
+> `mutstr = { version = "0.4.0", features = ["serde"] }`
 
 ## Examples
 

@@ -34,3 +34,21 @@ impl serde::Serialize for mutstr {
         serializer.serialize_str(self.as_str())
     }
 }
+
+#[cfg(test)]
+mod serde_implementation {
+    use super::mutstr;
+
+    #[derive(Default, serde::Deserialize, serde::Serialize)]
+    struct MyStruct {
+        name: mutstr,
+    }
+    
+    #[test]
+    fn from_to() {
+        let raw = r#"{"name":"Nick"}"#;
+        let result = serde_json::from_str::<MyStruct>(raw).unwrap();
+        assert_eq!(result.name.as_str(), "Nick");
+        assert_eq!(serde_json::to_string(&result).unwrap(), raw);
+    }
+}
